@@ -52,6 +52,11 @@ var DataSources = {
 
 document.addEventListener("DOMContentLoaded", () => {
   // DOM Elements Declarations
+  var mainSections = document.querySelectorAll("section");
+  var navLinks = document.querySelectorAll(
+    'a[data-section="launches"], a[data-section="planets"], a[data-section="today-in-space"]'
+  );
+  console.log(navLinks);
   var apodDatePicker = document.getElementById("apod-date-input");
   var apodDateLabel = apodDatePicker.nextElementSibling;
   var apodLoading = document.getElementById("apod-loading");
@@ -65,6 +70,8 @@ document.addEventListener("DOMContentLoaded", () => {
   var apodDateInfo = document.getElementById("apod-date-info");
   var loadDateBtn = document.getElementById("load-date-btn");
   var todayApodBtn = document.getElementById("today-apod-btn");
+  var sidebar = document.getElementById("sidebar");
+  var sidebarToggle = document.getElementById("sidebar-toggle");
   var isDateSelected = false;
   var isTodayClicked = false;
   // set fallback loading indicator
@@ -85,7 +92,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     var date = apodDatePicker.value;
-    console.log(date);
     displayLoadingIndicator();
     DataSources.ds_get_apod(date).then((data) => displayApod(data));
     setDateSelectionStatus(false);
@@ -105,6 +111,43 @@ document.addEventListener("DOMContentLoaded", () => {
     DataSources.ds_get_apod(todayDate).then((data) => displayApod(data));
     setTodayClickedStatus(true);
   });
+
+  //   handle Sidebar
+  sidebarToggle.addEventListener("click", (e) => {
+    sidebar.classList.toggle("sidebar-open");
+    e.stopPropagation();
+  });
+  document.addEventListener("click", (e) => {
+    console.log(sidebar.children[0]);
+
+    if (
+      !Array.from(sidebar.children).includes(e.target) &&
+      !sidebar.children[0].contains(e.target) &&
+      !sidebar.children[2].contains(e.target) &&
+      sidebar.classList.contains("sidebar-open")
+    ) {
+      sidebar.classList.remove("sidebar-open");
+    }
+  });
+  console.log(sidebar.children);
+  // handle NaveLinks
+  var activeClassList = ["text-blue-400", "bg-blue-500/10"];
+  var nonActiveClassList = ["text-slate-300", "hover:bg-slate-800"];
+  for (let i = 0; i < navLinks.length; i++) {
+    navLinks[i].addEventListener("click", () => {
+      for (let j = 0; j < mainSections.length; j++) {
+        mainSections[j].classList.add("hidden");
+      }
+
+      for (var k = 0; k < navLinks.length; k++) {
+        navLinks[k].classList.remove(...activeClassList);
+        navLinks[k].classList.add(...nonActiveClassList);
+      }
+      mainSections[i].classList.remove("hidden");
+      navLinks[i].classList.remove(...nonActiveClassList);
+      navLinks[i].classList.add(...activeClassList);
+    });
+  }
 
   // Helpers functions
   function displayLoadingIndicator() {
@@ -195,3 +238,15 @@ document.addEventListener("DOMContentLoaded", () => {
     isTodayClicked = status;
   }
 });
+
+//  non active classes
+
+/*
+
+*/
+
+/*
+active classes
+sidebar-open
+
+*/
