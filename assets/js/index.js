@@ -73,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
   var sidebar = document.getElementById("sidebar");
   var sidebarToggle = document.getElementById("sidebar-toggle");
   var featuredLaunchSection = document.getElementById("featured-launch");
+  var launchGrid = document.getElementById("launches-grid");
   var isDateSelected = false;
   var isTodayClicked = false;
   // ===>  set fallback loading indicator
@@ -149,7 +150,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ===>  handle Launches section
   DataSources.ds_get_upcoming_launches().then((data) => {
-    displayUpcomingLaunches(data);
+    displayFeaturedLaunch(data.results[0]);
+    displayUpcomingLaunches(data.results);
   });
 
   // Helpers functions
@@ -201,10 +203,95 @@ document.addEventListener("DOMContentLoaded", () => {
   function displayFormattedDate(date) {
     apodDateLabel.textContent = date;
   }
-  function displayUpcomingLaunches(data) {
-    var featuredLaunch = data.results[0];
-    console.log(featuredLaunch.image);
-    featuredLaunchSection.innerHTML = `
+  function displayFeaturedLaunch(featuredLaunch) {
+    featuredLaunchSection.innerHTML = createFeaturedLaunchCard(featuredLaunch);
+  }
+
+  function displayUpcomingLaunches(upcomingLaunches) {
+    console.log("upcomingLaunches", upcomingLaunches);
+    console.log("launchGrid", launchGrid);
+    var box = "";
+    for (var i = 0; i < upcomingLaunches.length; i++) {
+      launchGrid.insertAdjacentHTML(
+        "beforeend",
+        createLaunchCard(upcomingLaunches[i])
+      );
+    }
+  }
+
+  function createLaunchCard(upcomingLaunch) {
+    return `
+    <div class="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden hover:border-blue-500/30 transition-all group cursor-pointer">
+      <div class="relative h-48 bg-slate-900/50 flex items-center justify-center">
+  ${
+    upcomingLaunch?.image?.image_url || upcomingLaunch?.image?.thumbnail_url
+      ? `<img src=${
+          upcomingLaunch?.image?.image_url ||
+          upcomingLaunch?.image?.thumbnail_url
+        } class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="Astronomy Picture of the Day"/>`
+      : `<i class="fas fa-space-shuttle text-5xl text-slate-700"></i>`
+  }
+        <div class="absolute top-3 right-3">
+          <span class="px-3 py-1 bg-green-500/90 text-white backdrop-blur-sm rounded-full text-xs font-semibold">
+            ${upcomingLaunch?.status?.abbrev ?? "unknown"}
+          </span>
+        </div>
+      </div>
+      <div class="p-5">
+        <div class="mb-3">
+          <h4 class="font-bold text-lg mb-2 line-clamp-2 group-hover:text-blue-400 transition-colors">
+            ${upcomingLaunch?.name ?? "Unknown"}
+          </h4>
+          <p class="text-sm text-slate-400 flex items-center gap-2">
+            <i class="fas fa-building text-xs"></i>${
+              upcomingLaunch?.launch_service_provider.name ?? "Unknown"
+            }
+          </p>
+        </div>
+        <div class="space-y-2 mb-4">
+          <div class="flex items-center gap-2 text-sm">
+            <i class="fas fa-calendar text-slate-500 w-4"></i>
+            <span class="text-slate-300">
+              ${formatDate(upcomingLaunch?.net, undefined, {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <i class="fas fa-clock text-slate-500 w-4"></i>
+            <span class="text-slate-300">
+              ${formatTime(upcomingLaunch?.net)}
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <i class="fas fa-rocket text-slate-500 w-4"></i>
+            <span class="text-slate-300">${
+              upcomingLaunch?.rocket?.configuration?.name ?? "Unknown"
+            }</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <i class="fas fa-map-marker-alt text-slate-500 w-4"></i>
+            <span class="text-slate-300 line-clamp-1">${
+              upcomingLaunch?.pad?.location?.name ?? "Unknown"
+            }</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 pt-4 border-t border-slate-700">
+          <button class="flex-1 px-4 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors text-sm font-semibold">
+            Details
+          </button>
+          <button class="px-3 py-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors">
+            <i class="far fa-heart"></i>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function createFeaturedLaunchCard(featuredLaunch) {
+    return `
      <div
               class="relative bg-slate-800/30 border border-slate-700 rounded-3xl overflow-hidden group hover:border-blue-500/50 transition-all"
             >
@@ -375,10 +462,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
               </div>
             </div>
-    
-    `;
+            `;
   }
-
   function formatTime(
     date,
     local = "en-US",
