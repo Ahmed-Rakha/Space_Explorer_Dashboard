@@ -203,6 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function displayUpcomingLaunches(data) {
     var featuredLaunch = data.results[0];
+    console.log(featuredLaunch.image);
     featuredLaunchSection.innerHTML = `
      <div
               class="relative bg-slate-800/30 border border-slate-700 rounded-3xl overflow-hidden group hover:border-blue-500/50 transition-all"
@@ -286,7 +287,9 @@ document.addEventListener("DOMContentLoaded", () => {
                           <i class="fas fa-clock"></i>
                           Launch Time
                         </p>
-                        <p class="font-semibold">12:00 PM UTC</p>
+                        <p class="font-semibold">${formatTime(
+                          featuredLaunch?.net
+                        )}</p>
                       </div>
                       <div class="bg-slate-900/50 rounded-xl p-4">
                         <p
@@ -342,7 +345,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div class="relative">
                     ${
-                      featuredLaunch?.rocket?.configuration?.url
+                      featuredLaunch?.image?.image_url ||
+                      featuredLaunch?.image?.thumbnail_url
                         ? `<div
                     class="relative h-full min-h-[400px] rounded-2xl overflow-hidden bg-slate-900/50"
                   >
@@ -350,7 +354,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     <div
                       class="flex items-center justify-center h-full min-h-[400px] bg-slate-800"
                     >
-                      <i class="fas fa-rocket text-9xl text-slate-700/50"></i>
+                      <img src=${
+                        featuredLaunch?.image?.image_url ||
+                        featuredLaunch?.image?.thumbnail_url
+                      } alt="Astronomy Picture of the Day"/>
                     </div>
                     <div
                       class="absolute inset-0 bg-linear-to-t from-slate-900 via-transparent to-transparent"
@@ -370,6 +377,21 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
     
     `;
+  }
+
+  function formatTime(
+    date,
+    local = "en-US",
+    options = {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "UTC",
+      timeZoneName: "short",
+    }
+  ) {
+    var date = new Date(date);
+    return date.toLocaleTimeString(local, options);
   }
 
   function formatDate(
@@ -435,3 +457,15 @@ active classes
 sidebar-open
 
 */
+
+var date = new Date();
+
+console.log(
+  date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "UTC",
+    timeZoneName: "short",
+  })
+);
