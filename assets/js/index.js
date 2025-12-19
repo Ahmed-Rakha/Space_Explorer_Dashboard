@@ -26,28 +26,29 @@ async function ds_get_apod(date = "") {
   }
 }
 
-// async function ds_get_apod_by_date(date) {
-//   try {
-//     var response = await fetch(
-//       `https://api.nasa.gov/planetary/apod?api_key=${api_key}&date=${date}`
-//     );
-//     if (!response.ok) {
-//       throw new Error(`HTTP error! status: ${response.status}`);
-//     }
-//     var data = await response.json();
-//     return data;
-//   } catch (error) {
-//     if (error instanceof TypeError) {
-//       console.error("Network error:", error.message);
-//     } else {
-//       // HTTP error or other errors
-//       console.error("Fetch error:", error.message);
-//     }
-//   }
-// }
+async function ds_get_upcoming_launches(limit = 5) {
+  try {
+    var response = await fetch(
+      `https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=${limit}`
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    var data = await response.json();
+    return data;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      console.error("Network error:", error.message);
+    } else {
+      // HTTP error or other errors
+      console.error("Fetch error:", error.message);
+    }
+  }
+}
 // Today in Space API
 var DataSources = {
   ds_get_apod,
+  ds_get_upcoming_launches,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -56,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
   var navLinks = document.querySelectorAll(
     'a[data-section="launches"], a[data-section="planets"], a[data-section="today-in-space"]'
   );
-  console.log(navLinks);
   var apodDatePicker = document.getElementById("apod-date-input");
   var apodDateLabel = apodDatePicker.nextElementSibling;
   var apodLoading = document.getElementById("apod-loading");
@@ -72,20 +72,21 @@ document.addEventListener("DOMContentLoaded", () => {
   var todayApodBtn = document.getElementById("today-apod-btn");
   var sidebar = document.getElementById("sidebar");
   var sidebarToggle = document.getElementById("sidebar-toggle");
+  var featuredLaunchSection = document.getElementById("featured-launch");
   var isDateSelected = false;
   var isTodayClicked = false;
-  // set fallback loading indicator
+  // ===>  set fallback loading indicator
   displayLoadingIndicator();
-  //   Fetch today's APOD
+  // ===>   Fetch today's APOD
   DataSources.ds_get_apod().then((data) => displayApod(data));
-  //   handle DatePicker
+  // ===>   handle DatePicker
   apodDatePicker.addEventListener("change", (e) => {
     setDateSelectionStatus(true);
     setTodayClickedStatus(false);
     var formattedDate = formatDate(e.currentTarget.value);
     displayFormattedDate(formattedDate);
   });
-  //   Fetch APOD by date
+  // ===>  Fetch APOD by date
   loadDateBtn.addEventListener("click", function (e) {
     if (!isDateSelected) {
       showErrorFetchingDate();
@@ -97,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setDateSelectionStatus(false);
   });
 
-  //   Set today's date
+  //  ===>  Set today's date
 
   todayApodBtn.addEventListener("click", () => {
     if (isTodayClicked) {
@@ -112,14 +113,12 @@ document.addEventListener("DOMContentLoaded", () => {
     setTodayClickedStatus(true);
   });
 
-  //   handle Sidebar
+  // ===>  handle Sidebar
   sidebarToggle.addEventListener("click", (e) => {
     sidebar.classList.toggle("sidebar-open");
     e.stopPropagation();
   });
   document.addEventListener("click", (e) => {
-    console.log(sidebar.children[0]);
-
     if (
       !Array.from(sidebar.children).includes(e.target) &&
       !sidebar.children[0].contains(e.target) &&
@@ -129,8 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
       sidebar.classList.remove("sidebar-open");
     }
   });
-  console.log(sidebar.children);
-  // handle NaveLinks
+  // ===>  handle NaveLinks
   var activeClassList = ["text-blue-400", "bg-blue-500/10"];
   var nonActiveClassList = ["text-slate-300", "hover:bg-slate-800"];
   for (let i = 0; i < navLinks.length; i++) {
@@ -148,6 +146,11 @@ document.addEventListener("DOMContentLoaded", () => {
       navLinks[i].classList.add(...activeClassList);
     });
   }
+
+  // ===>  handle Launches section
+  DataSources.ds_get_upcoming_launches().then((data) => {
+    displayUpcomingLaunches(data);
+  });
 
   // Helpers functions
   function displayLoadingIndicator() {
@@ -198,6 +201,176 @@ document.addEventListener("DOMContentLoaded", () => {
   function displayFormattedDate(date) {
     apodDateLabel.textContent = date;
   }
+  function displayUpcomingLaunches(data) {
+    var featuredLaunch = data.results[0];
+    featuredLaunchSection.innerHTML = `
+     <div
+              class="relative bg-slate-800/30 border border-slate-700 rounded-3xl overflow-hidden group hover:border-blue-500/50 transition-all"
+            >
+              <div
+                class="absolute inset-0 bg-linear-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+              ></div>
+              <div class="relative grid grid-cols-1 lg:grid-cols-2 gap-6 p-8">
+                <div class="flex flex-col justify-between">
+                  <div>
+                    <div class="flex items-center gap-3 mb-4">
+                      <span
+                        class="px-4 py-1.5 bg-blue-500/20 text-blue-400 rounded-full text-sm font-semibold flex items-center gap-2"
+                      >
+                        <i class="fas fa-star"></i>
+                        Featured Launch
+                      </span>
+                      <span
+                        class="px-4 py-1.5 bg-green-500/20 text-green-400 rounded-full text-sm font-semibold"
+                      >
+                        ${featuredLaunch?.status?.abbrev ?? "unknown"}
+                      </span>
+                    </div>
+                    <h3 class="text-3xl font-bold mb-3 leading-tight">
+                      ${featuredLaunch?.name ?? "unknown"}
+                    </h3>
+                    <div
+                      class="flex flex-col xl:flex-row xl:items-center gap-4 mb-6 text-slate-400"
+                    >
+                      <div class="flex items-center gap-2">
+                        <i class="fas fa-building"></i>
+                        <span>${
+                          featuredLaunch?.launch_service_provider?.name ??
+                          "unknown"
+                        }</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <i class="fas fa-rocket"></i>
+                        <span>${
+                          featuredLaunch?.rocket?.configuration?.name ??
+                          "unknown"
+                        }</span>
+                      </div>
+                    </div>
+                    ${
+                      getLeftDaysForLaunch(featuredLaunch?.net) > 0
+                        ? `<div
+                      class="inline-flex items-center gap-3 px-6 py-3 bg-linear-to-r from-blue-500/20 to-purple-500/20 rounded-xl mb-6"
+                    >
+                      <i class="fas fa-clock text-2xl text-blue-400"></i>
+                      <div>
+                        <p class="text-2xl font-bold text-blue-400">2</p>
+                        <p class="text-xs text-slate-400">Days Until Launch</p>
+                      </div>
+                    </div>`
+                        : ""
+                    }
+                    <div class="grid xl:grid-cols-2 gap-4 mb-6">
+                      <div class="bg-slate-900/50 rounded-xl p-4">
+                        <p
+                          class="text-xs text-slate-400 mb-1 flex items-center gap-2"
+                        >
+                          <i class="fas fa-calendar"></i>
+                          Launch Date
+                        </p>
+                        <p class="font-semibold">${formatDate(
+                          featuredLaunch?.net,
+                          undefined,
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            weekday: "long",
+                          }
+                        )}</p>
+                      </div>
+                      <div class="bg-slate-900/50 rounded-xl p-4">
+                        <p
+                          class="text-xs text-slate-400 mb-1 flex items-center gap-2"
+                        >
+                          <i class="fas fa-clock"></i>
+                          Launch Time
+                        </p>
+                        <p class="font-semibold">12:00 PM UTC</p>
+                      </div>
+                      <div class="bg-slate-900/50 rounded-xl p-4">
+                        <p
+                          class="text-xs text-slate-400 mb-1 flex items-center gap-2"
+                        >
+                          <i class="fas fa-map-marker-alt"></i>
+                          Location
+                        </p>
+                        <p class="font-semibold text-sm">${
+                          featuredLaunch?.pad?.location?.name ?? "unknown"
+                        }</p>
+                      </div>
+                      <div class="bg-slate-900/50 rounded-xl p-4">
+                        <p
+                          class="text-xs text-slate-400 mb-1 flex items-center gap-2"
+                        >
+                          <i class="fas fa-globe"></i>
+                          Country
+                        </p>
+                        <p class="font-semibold">${
+                          featuredLaunch?.pad?.location?.country?.name ??
+                          "Unknown"
+                        }</p>
+                      </div>
+                    </div>
+                    <p class="text-slate-300 leading-relaxed mb-6">
+                     ${
+                       featuredLaunch.mission?.description ??
+                       "Mission details will be available closer to launch date."
+                     }
+                    </p>
+                  </div>
+                  <div class="flex flex-col md:flex-row gap-3">
+                    <button
+                      class="flex-1 self-start md:self-center px-6 py-3 bg-blue-500 rounded-xl hover:bg-blue-600 transition-colors font-semibold flex items-center justify-center gap-2"
+                    >
+                      <i class="fas fa-info-circle"></i>
+                      View Full Details
+                    </button>
+                    <div class="icons self-end md:self-center">
+                      <button
+                        class="px-4 py-3 bg-slate-700 rounded-xl hover:bg-slate-600 transition-colors"
+                      >
+                        <i class="far fa-heart"></i>
+                      </button>
+                      <button
+                        class="px-4 py-3 bg-slate-700 rounded-xl hover:bg-slate-600 transition-colors"
+                      >
+                        <i class="fas fa-bell"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div class="relative">
+                    ${
+                      featuredLaunch?.rocket?.configuration?.url
+                        ? `<div
+                    class="relative h-full min-h-[400px] rounded-2xl overflow-hidden bg-slate-900/50"
+                  >
+                    <!-- Placeholder image/icon since we can't load external images reliably without correct URLs -->
+                    <div
+                      class="flex items-center justify-center h-full min-h-[400px] bg-slate-800"
+                    >
+                      <i class="fas fa-rocket text-9xl text-slate-700/50"></i>
+                    </div>
+                    <div
+                      class="absolute inset-0 bg-linear-to-t from-slate-900 via-transparent to-transparent"
+                    ></div>
+                  </div>`
+                        : `
+                         <div class="flex items-center justify-center h-full min-h-[400px] bg-slate-900/50 rounded-2xl">
+                        <div class="text-center">
+                            <i class="fas fa-rocket text-6xl text-slate-700 mb-4"></i>
+                            <p class="text-slate-500">No image available</p>
+                        </div>
+                    </div>
+                        `
+                    }
+                </div>
+              </div>
+            </div>
+    
+    `;
+  }
 
   function formatDate(
     date,
@@ -236,6 +409,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function setTodayClickedStatus(status) {
     isTodayClicked = status;
+  }
+  function getLeftDaysForLaunch(launchDate) {
+    var leftDays = 0;
+    var expectedLaunchDate = new Date(launchDate).getTime();
+    var todayTime = new Date().getTime();
+    if (expectedLaunchDate > todayTime) {
+      leftDays = Math.floor(
+        (expectedLaunchDate - todayTime) / (1000 * 60 * 60 * 24)
+      );
+      return leftDays;
+    }
+    return leftDays;
   }
 });
 
