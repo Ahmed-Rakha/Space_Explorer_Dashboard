@@ -45,10 +45,34 @@ async function ds_get_upcoming_launches(limit = 5) {
     }
   }
 }
+
+async function ds_get_all_planets() {
+  try {
+    var response = await fetch(
+      "https://solar-system-opendata-proxy.vercel.app/api/planets"
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    var data = await response.json();
+    var planets = [];
+    for (var i = 0; i < data.bodies.length; i++) {
+      data.bodies[i].isPlanet && planets.push(data.bodies[i]);
+    }
+    return planets;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      console.error("Network error:", error.message);
+    } else {
+      console.error("Fetch error:", error.message);
+    }
+  }
+}
 // Today in Space API
 var DataSources = {
   ds_get_apod,
   ds_get_upcoming_launches,
+  ds_get_all_planets,
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -74,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
   var sidebarToggle = document.getElementById("sidebar-toggle");
   var featuredLaunchSection = document.getElementById("featured-launch");
   var launchGrid = document.getElementById("launches-grid");
+  var planetsGrid = document.getElementById("planets-grid");
   var isDateSelected = false;
   var isTodayClicked = false;
   // ===>  set fallback loading indicator
@@ -119,6 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sidebar.classList.toggle("sidebar-open");
     e.stopPropagation();
   });
+  // ===>  handle close sidebar
   document.addEventListener("click", (e) => {
     if (
       !Array.from(sidebar.children).includes(e.target) &&
@@ -154,6 +180,10 @@ document.addEventListener("DOMContentLoaded", () => {
     displayUpcomingLaunches(data.results);
   });
 
+  // ===>  handle Planets section
+  DataSources.ds_get_all_planets().then((data) => {
+    displayPlanets(data);
+  });
   // Helpers functions
   function displayLoadingIndicator() {
     apodDateLabel.textContent = "";
@@ -464,33 +494,108 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             `;
   }
-  function formatTime(
-    date,
-    local = "en-US",
-    options = {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "UTC",
-      timeZoneName: "short",
+  function createPlanetCard(Planet) {
+    return `
+   <div
+              class="planet-card bg-slate-800/50 border border-slate-700 rounded-2xl p-4 transition-all cursor-pointer group"
+              data-planet-id= "${Planet.englishName.toLowerCase()}"
+              style="--planet-color: ${
+                getPlanetStyle(Planet.englishName).planetColor
+              }"
+              onmouseover="this.style.borderColor='${
+                getPlanetStyle(Planet.englishName).borderHover
+              }'"
+              onmouseout="this.style.borderColor='${
+                getPlanetStyle(Planet.englishName).borderDefault
+              }'"
+            >
+              <div class="relative mb-3 h-24 flex items-center justify-center">
+                <img
+                  class="w-20 h-20 object-contain group-hover:scale-110 transition-transform"
+                  src="${Planet.image}"
+                  alt="${Planet.englishName}"
+                />
+              </div>
+              <h4 class="font-semibold text-center text-sm">${
+                Planet.englishName
+              }</h4>
+              <p class="text-xs text-slate-400 text-center">${calcDistanceInAu(
+                Planet.semimajorAxis
+              )} AU</p>
+            </div>  
+  
+  `;
+  }
+  function displayPlanets(planets) {
+    for (var i = 0; i < planets.length; i++) {
+      planetsGrid.insertAdjacentHTML("beforeend", createPlanetCard(planets[i]));
     }
-  ) {
-    var date = new Date(date);
-    return date.toLocaleTimeString(local, options);
+  }
+  function getPlanetStyle(planetName) {
+    var planetsConfig = [
+      {
+        name: "Mercury",
+        planetColor: "#eab308",
+        borderHover: "#eab30880",
+        borderDefault: "#334155",
+      },
+      {
+        name: "Venus",
+        planetColor: "#f97316",
+        borderHover: "#f9731680",
+        borderDefault: "#334155",
+      },
+      {
+        name: "Earth",
+        planetColor: "#3b82f6",
+        borderHover: "#3b82f680",
+        borderDefault: "#334155",
+      },
+      {
+        name: "Mars",
+        planetColor: "#ef4444",
+        borderHover: "#ef444480",
+        borderDefault: "#334155",
+      },
+      {
+        name: "Jupiter",
+        planetColor: "#fb923c",
+        borderHover: "#fb923c80",
+        borderDefault: "#334155",
+      },
+      {
+        name: "Saturn",
+        planetColor: "#facc15",
+        borderHover: "#facc1580",
+        borderDefault: "#334155",
+      },
+      {
+        name: "Uranus",
+        planetColor: "#06b6d4",
+        borderHover: "#06b6d480",
+        borderDefault: "#334155",
+      },
+      {
+        name: "Neptune",
+        planetColor: "#2563eb",
+        borderHover: "#2563eb80",
+        borderDefault: "#334155",
+      },
+    ];
+    for (var i = 0; i < planetsConfig.length; i++) {
+      if (
+        planetName.toLowerCase().trim() ===
+        planetsConfig[i].name.toLowerCase().trim()
+      ) {
+        return planetsConfig[i];
+      }
+    }
   }
 
-  function formatDate(
-    date,
-    local = "en-US",
-    options = { day: "numeric", month: "short", year: "numeric" }
-  ) {
-    var formattedDate = new Date(date).toLocaleDateString(local, options);
-    return formattedDate;
-  }
-
-  function getTodayDate() {
-    var todayDate = new Date().toISOString().split("T")[0];
-    return todayDate;
+  function calcDistanceInAu(semimajorAxis) {
+    var AU_IN_KM = 149597870;
+    var distanceAU = (semimajorAxis / AU_IN_KM).toFixed(2);
+    return distanceAU;
   }
 
   function showErrorFetchingData() {
@@ -529,6 +634,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     return leftDays;
   }
+  function formatTime(
+    date,
+    local = "en-US",
+    options = {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "UTC",
+      timeZoneName: "short",
+    }
+  ) {
+    var date = new Date(date);
+    return date.toLocaleTimeString(local, options);
+  }
+
+  function formatDate(
+    date,
+    local = "en-US",
+    options = { day: "numeric", month: "short", year: "numeric" }
+  ) {
+    var formattedDate = new Date(date).toLocaleDateString(local, options);
+    return formattedDate;
+  }
+
+  function getTodayDate() {
+    var todayDate = new Date().toISOString().split("T")[0];
+    return todayDate;
+  }
 });
 
 //  non active classes
@@ -542,15 +675,3 @@ active classes
 sidebar-open
 
 */
-
-var date = new Date();
-
-console.log(
-  date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone: "UTC",
-    timeZoneName: "short",
-  })
-);
