@@ -99,6 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
   var featuredLaunchSection = document.getElementById("featured-launch");
   var launchGrid = document.getElementById("launches-grid");
   var planetsGrid = document.getElementById("planets-grid");
+  var planetDetails = document.getElementById("planet-details-grid");
   var isDateSelected = false;
   var isTodayClicked = false;
   // ===>  set fallback loading indicator
@@ -181,8 +182,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // ===>  handle Planets section
+  var planetsData = [];
   DataSources.ds_get_all_planets().then((data) => {
+    console.log("PlanetsData", data);
+    planetsData = [...data];
     displayPlanets(data);
+    displayPlanetInfo();
   });
   // Helpers functions
   function displayLoadingIndicator() {
@@ -238,9 +243,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function displayUpcomingLaunches(upcomingLaunches) {
-    console.log("upcomingLaunches", upcomingLaunches);
-    console.log("launchGrid", launchGrid);
-    var box = "";
     for (var i = 0; i < upcomingLaunches.length; i++) {
       launchGrid.insertAdjacentHTML(
         "beforeend",
@@ -496,9 +498,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   function createPlanetCard(Planet) {
     return `
-   <div
+   <div onclick="displayPlanetInfo(this.dataset.planetId)"
               class="planet-card bg-slate-800/50 border border-slate-700 rounded-2xl p-4 transition-all cursor-pointer group"
-              data-planet-id= "${Planet.englishName.toLowerCase()}"
+              data-planet-id= "${Planet.englishName}"
               style="--planet-color: ${
                 getPlanetStyle(Planet.englishName).planetColor
               }"
@@ -526,11 +528,314 @@ document.addEventListener("DOMContentLoaded", () => {
   
   `;
   }
-  function displayPlanets(planets) {
-    for (var i = 0; i < planets.length; i++) {
-      planetsGrid.insertAdjacentHTML("beforeend", createPlanetCard(planets[i]));
+
+  function createPlanetInfoTemplate(Planet) {
+    console.log("Planetdd", Planet);
+    return `
+    
+            <div
+              class="xl:col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl md:rounded-2xl p-4 md:p-6 lg:p-8"
+            >
+              <div
+                class="flex flex-col xl:flex-row xl:items-start space-y-4 xl:space-y-0"
+              >
+                <div
+                  class="relative h-48 w-48 md:h-64 md:w-64 shrink-0 mx-auto xl:mr-6"
+                >
+                  <img
+                    id="planet-detail-image"
+                    class="w-full h-full object-contain"
+                    src="${Planet.image}"
+                    alt="${
+                      Planet.englishName
+                    } planet detailed realistic render with clouds and continents"
+                  />
+                </div>
+                <div class="flex-1">
+                  <div class="flex items-center justify-between mb-3 md:mb-4">
+                    <h3
+                      id="planet-detail-name"
+                      class="text-2xl md:text-3xl font-space font-bold"
+                    >
+                      ${Planet.englishName}
+                    </h3>
+                    <button
+                      class="w-10 h-10 bg-slate-700 rounded-lg hover:bg-slate-600 transition-colors"
+                    >
+                      <i class="far fa-heart"></i>
+                    </button>
+                  </div>
+                  <p
+                    id="planet-detail-description"
+                    class="text-slate-300 mb-4 md:mb-6 leading-relaxed text-sm md:text-base"
+                  >
+                    ${Planet.description}
+                  </p>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2 md:gap-4 mt-4">
+                <div class="bg-slate-900/50 rounded-lg p-3 md:p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-ruler text-xs"></i>
+                    <span class="text-xs">Semimajor Axis</span>
+                  </p>
+                  <p
+                    id="planet-distance"
+                    class="text-sm md:text-lg font-semibold"
+                  >
+                  ${calcDistanceInMillionKm(Planet.semimajorAxis)}M km
+                  </p>
+                </div>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-circle"></i>
+                    Mean Radius
+                  </p>
+                  <p id="planet-radius" class="text-lg font-semibold">
+                    6,371 km
+                  </p>
+                </div>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-weight"></i>
+                    Mass
+                  </p>
+                  <p id="planet-mass" class="text-lg font-semibold">
+                    ${Planet.mass.massValue.toFixed(2)} × 10^${
+      Planet.mass.massExponent
+    } kg
+                  </p>
+                </div>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-compress"></i>
+                    Density
+                  </p>
+                  <p id="planet-density" class="text-lg font-semibold">
+                    5.51 g/cm³
+                  </p>
+                </div>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-sync-alt"></i>
+                    Orbital Period
+                  </p>
+                  <p id="planet-orbital-period" class="text-lg font-semibold">
+                    365.25 days
+                  </p>
+                </div>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-redo"></i>
+                    Rotation Period
+                  </p>
+                  <p id="planet-rotation" class="text-lg font-semibold">
+                    24 hours
+                  </p>
+                </div>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-moon"></i>
+                    Moons
+                  </p>
+                  <p id="planet-moons" class="text-lg font-semibold">${
+                    Planet.moons?.length || 0
+                  }</p>
+                </div>
+                <div class="bg-slate-900/50 rounded-lg p-4">
+                  <p
+                    class="text-xs text-slate-400 mb-1 flex items-center gap-1"
+                  >
+                    <i class="fas fa-arrows-alt-v"></i>
+                    Gravity
+                  </p>
+                  <p id="planet-gravity" class="text-lg font-semibold">
+                    9.8 m/s²
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="space-y-6">
+              <div
+                class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6"
+              >
+                <h4 class="font-semibold mb-4 flex items-center">
+                  <i class="fas fa-user-astronaut text-purple-400 mr-2"></i>
+                  Discovery Info
+                </h4>
+                <div class="space-y-3 text-sm">
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Discovered By</span>
+                    <span
+                      id="planet-discoverer"
+                      class="font-semibold text-right"
+                      >Known since antiquity</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Discovery Date</span>
+                    <span id="planet-discovery-date" class="font-semibold"
+                      >Ancient</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Body Type</span>
+                    <span id="planet-body-type" class="font-semibold"
+                      >Planet</span
+                    >
+                  </div>
+                  <div class="flex justify-between items-center py-2">
+                    <span class="text-slate-400">Volume</span>
+                    <span id="planet-volume" class="font-semibold">N/A</span>
+                  </div>
+                </div>
+              </div>
+              <div
+                class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6"
+              >
+                <h4 class="font-semibold mb-4 flex items-center">
+                  <i class="fas fa-lightbulb text-yellow-400 mr-2"></i>
+                  Quick Facts
+                </h4>
+                <ul id="planet-facts" class="space-y-3 text-sm">
+                  <li class="flex items-start">
+                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                    <span class="text-slate-300"
+                      >Only known planet with liquid water</span
+                    >
+                  </li>
+                  <li class="flex items-start">
+                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                    <span class="text-slate-300"
+                      >Atmosphere contains 78% nitrogen</span
+                    >
+                  </li>
+                  <li class="flex items-start">
+                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                    <span class="text-slate-300"
+                      >Magnetic field protects from solar wind</span
+                    >
+                  </li>
+                  <li class="flex items-start">
+                    <i class="fas fa-check text-green-400 mt-1 mr-2"></i>
+                    <span class="text-slate-300"
+                      >Formed 4.54 billion years ago</span
+                    >
+                  </li>
+                </ul>
+              </div>
+              <div
+                class="bg-slate-800/50 border border-slate-700 rounded-2xl p-6"
+              >
+                <h4 class="font-semibold mb-4 flex items-center">
+                  <i class="fas fa-satellite text-blue-400 mr-2"></i>
+                  Orbital Characteristics
+                </h4>
+                <div class="space-y-3 text-sm">
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Perihelion</span>
+                    <span id="planet-perihelion" class="font-semibold"
+                      >147.1M km</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Aphelion</span>
+                    <span id="planet-aphelion" class="font-semibold"
+                      >152.1M km</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Eccentricity</span>
+                    <span id="planet-eccentricity" class="font-semibold"
+                      >0.0167</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Inclination</span>
+                    <span id="planet-inclination" class="font-semibold"
+                      >0.00°</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Axial Tilt</span>
+                    <span id="planet-axial-tilt" class="font-semibold"
+                      >23.44°</span
+                    >
+                  </div>
+                  <div
+                    class="flex justify-between items-center py-2 border-b border-slate-700"
+                  >
+                    <span class="text-slate-400">Avg Temperature</span>
+                    <span id="planet-temp" class="font-semibold">15°C</span>
+                  </div>
+                  <div class="flex justify-between items-center py-2">
+                    <span class="text-slate-400">Escape Velocity</span>
+                    <span id="planet-escape" class="font-semibold"
+                      >11.2 km/s</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <button
+                class="w-full py-3 bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors font-semibold"
+              >
+                <i class="fas fa-book mr-2"></i>Learn More
+              </button>
+            </div>
+         
+    
+    `;
+  }
+  function displayPlanets(Planet) {
+    console.log("Planets", Planet);
+    for (var i = 0; i < Planet.length; i++) {
+      planetsGrid.insertAdjacentHTML("beforeend", createPlanetCard(Planet[i]));
     }
   }
+
+  function displayPlanetInfo(planetName = "Earth") {
+    var planet = {};
+    for (var i = 0; i < planetsData.length; i++) {
+      if (
+        planetsData[i].englishName.toLowerCase() === planetName.toLowerCase()
+      ) {
+        planet = planetsData[i];
+        break;
+      }
+    }
+    planetDetails.innerHTML = createPlanetInfoTemplate(planet);
+  }
+  window.displayPlanetInfo = displayPlanetInfo;
   function getPlanetStyle(planetName) {
     var planetsConfig = [
       {
@@ -598,6 +903,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return distanceAU;
   }
 
+  function calcDistanceInMillionKm(semimajorAxis) {
+    var M_KM = 1000000;
+    var distanceInMillionKm = (semimajorAxis / M_KM).toFixed(2);
+    return distanceInMillionKm;
+  }
   function showErrorFetchingData() {
     Swal.fire({
       title: "Error!",
